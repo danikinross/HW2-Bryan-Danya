@@ -11,6 +11,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.Manifest;
+import android.util.Log;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -38,54 +39,63 @@ public class AddMessageActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_message);
 
-        takePictureLauncher = registerForActivityResult(new ActivityResultContracts.TakePicture(), result -> {
-            if (result) {
-                addPhoto.setImageURI(CurrentImage);
-            }
-        });
-        addPhoto.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+        // Initialize Firestore
+        db = FirebaseFirestore.getInstance();
 
-                    ActivityCompat.requestPermissions(AddMessageActivity.this, new String[] {
-                            Manifest.permission.CAMERA,
-                            Manifest.permission.ACCESS_MEDIA_LOCATION
-                    }, REQUEST_PERMISSIONS_CODE);
-                } else {
-                    captureImage();
+        // Initialize ImageView
+        addPhoto = findViewById(R.id.addPhoto); // Ensure this ID matches your layout
+
+        if (addPhoto != null) {
+            takePictureLauncher = registerForActivityResult(new ActivityResultContracts.TakePicture(), result -> {
+                if (result) {
+                    addPhoto.setImageURI(CurrentImage);
                 }
-            }
-        });
+            });
+            addPhoto.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                        ActivityCompat.requestPermissions(AddMessageActivity.this, new String[]{
+                                Manifest.permission.CAMERA,
+                                Manifest.permission.ACCESS_MEDIA_LOCATION
+                        }, REQUEST_PERMISSIONS_CODE);
+                    } else {
+                        captureImage();
+                    }
+                }
+            });
+        } else {
+            Log.e("AddMessageActivity", "ImageView is null. Check the ID in your layout file.");
+        }
+
         Button btn = findViewById(R.id.button);
         btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 EditText name = findViewById(R.id.name);
                 EditText text = findViewById(R.id.text);
-                StorageReference storageRef = FirebaseStorage.getInstance().getReference();
-                StorageReference fileRef = storageRef.child(CurrentImage.getPath());
-                fileRef.putFile(CurrentImage).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
-                    @Override
-                    public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                        fileRef.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
-                            @Override
-                            public void onSuccess(Uri uri) {
-                                Message c = new Message(uri.toString(),name.getText().toString(),text.getText().toString());
-                                db.collection("Messages").document(c.ID).set(c.getAsMap());
-                                Intent i = new Intent();
-                                i.putExtra("message",c);
-                                setResult(1,i);
-                                finish();
-                            }
-                        });
-                    }
-                });
-
-
-
-
-
+                if (CurrentImage != null) {
+                    StorageReference storageRef = FirebaseStorage.getInstance().getReference();
+                    StorageReference fileRef = storageRef.child(CurrentImage.getPath());
+                    fileRef.putFile(CurrentImage).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                        @Override
+                        public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                            fileRef.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                                @Override
+                                public void onSuccess(Uri uri) {
+                                    Message c = new Message(uri.toString(), name.getText().toString(), text.getText().toString());
+                                    db.collection("Messages").document(c.ID).set(c.getAsMap());
+                                    Intent i = new Intent();
+                                    i.putExtra("message", c);
+                                    setResult(1, i);
+                                    finish();
+                                }
+                            });
+                        }
+                    });
+                } else {
+                    Log.e("AddMessageActivity", "CurrentImage is null.");
+                }
             }
         });
     }

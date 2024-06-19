@@ -3,16 +3,15 @@ package com.example.hw2;
 import android.os.Bundle;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.util.Log;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 import com.bumptech.glide.Glide;
 
 public class MessageActivity extends AppCompatActivity {
+
+    private static final String TAG = "MessageActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -20,16 +19,24 @@ public class MessageActivity extends AppCompatActivity {
         setContentView(R.layout.activity_message);
 
         Bundle bundle = getIntent().getExtras();
-        Message message = (Message) bundle.getSerializable("message");
+        if (bundle != null) {
+            Message message = (Message) bundle.getSerializable("message");
+            if (message != null) {
+                TextView name = findViewById(R.id.name);
+                TextView text = findViewById(R.id.text);
+                ImageView avatar = findViewById(R.id.avatar);
 
-
-        TextView Name = findViewById(R.id.name);
-        TextView Text = findViewById(R.id.text);
-        ImageView Avatar = findViewById(R.id.avatar);
-
-        //Avatar.setImageURI(Uri.parse(message.Avatar));
-        Glide.with(this).load(message.Avatar).into(Avatar);
-        Name.setText(message.Name);
-        Text.setText(message.Text);
+                // Display message data
+                name.setText(message.Name);
+                text.setText(message.Text);
+                Glide.with(this).load(message.Avatar).into(avatar);
+            } else {
+                Log.e(TAG, "Message is null");
+                finish(); // Close the activity if message is null
+            }
+        } else {
+            Log.e(TAG, "Bundle is null");
+            finish(); // Close the activity if bundle is null
+        }
     }
 }
