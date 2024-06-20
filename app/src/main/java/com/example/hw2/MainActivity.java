@@ -4,15 +4,11 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 
-import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
@@ -34,7 +30,9 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onActivityResult(ActivityResult result) {
                         Intent data = result.getData();
-                        handleData(data);
+                        if (data != null) {
+                            handleData(data);
+                        }
                     }
                 }
         );
@@ -42,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
         RecyclerView rv = findViewById(R.id.rv);
         rv.setHasFixedSize(false);
 
-        RecyclerView.LayoutManager layoutManager = new GridLayoutManager(this,1);
+        RecyclerView.LayoutManager layoutManager = new GridLayoutManager(this, 1);
         rv.setLayoutManager(layoutManager);
 
         adapter = new MessageAdapter();
@@ -55,14 +53,26 @@ public class MainActivity extends AppCompatActivity {
         btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent i = new Intent(MainActivity.this,AddMessageActivity.class);
+                Intent i = new Intent(MainActivity.this, AddMessageActivity.class);
                 activityResultLauncher.launch(i);
             }
         });
 
+        adapter.setOnItemClickListener(new MessageAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(Message message) {
+                Intent intent = new Intent(MainActivity.this, MessageActivity.class);
+                intent.putExtra("message", message);
+                startActivity(intent);
+            }
+        });
     }
 
     private void handleData(Intent data) {
-        //handle data if neccessary
+        // Handle data if necessary
+        Message message = (Message) data.getSerializableExtra("message");
+        if (message != null) {
+            adapter.addMessage(message);
+        }
     }
 }

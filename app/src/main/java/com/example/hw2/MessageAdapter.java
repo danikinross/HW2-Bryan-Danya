@@ -1,100 +1,86 @@
 package com.example.hw2;
 
-import android.app.Activity;
-import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.core.app.ActivityOptionsCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
-import com.google.firebase.firestore.EventListener;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.FirebaseFirestoreException;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class MessageAdapter extends RecyclerView.Adapter<MessageViewHolder> {
+public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageViewHolder> {
 
-    FirebaseFirestore db = FirebaseFirestore.getInstance();
-    List<Message> Messages;
+    private List<Message> messageList = new ArrayList<>();
+    private OnItemClickListener listener;
 
-    public MessageAdapter() {
-        super();
-        Messages = new ArrayList<>();
-        db.collection("Messages")
-                .get()
-                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                    @Override
-                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                        if (task.isSuccessful()) {
-                            Messages.clear();
-                            for (QueryDocumentSnapshot document : task.getResult()) {
-                                Message c = new Message(document.get("Avatar").toString(),document.get("Name").toString(),document.get("Text").toString(),document.get("ID").toString());
-                                Messages.add(c);
-                            }
-                            notifyDataSetChanged();
-                        }
-                    }
-                });
-        db.collection("Messages").addSnapshotListener(new EventListener<QuerySnapshot>() {
-            @Override
-            public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
-                Messages.clear();
-                for (QueryDocumentSnapshot document : value) {
-                    Message c = new Message(document.get("Avatar").toString(),document.get("Name").toString(),document.get("Text").toString(),document.get("ID").toString());
-                    Messages.add(c);
-                }
-                notifyDataSetChanged();
-            }
-        });
+    public interface OnItemClickListener {
+        void onItemClick(Message message);
+    }
+
+    public void setOnItemClickListener(OnItemClickListener listener) {
+        this.listener = listener;
+    }
+
+    public void addMessage(Message message) {
+        messageList.add(message);
+        notifyItemInserted(messageList.size() - 1);
+    }
+
+    public void deleteMessage(int position) {
+        messageList.remove(position);
+        notifyItemRemoved(position);
+    }
+
+    public Message getMessageAtPosition(int position) {
+        return messageList.get(position);
     }
 
     @NonNull
     @Override
     public MessageViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.message,parent,false);
-        MessageViewHolder viewHolder = new MessageViewHolder(view);
-        return viewHolder;
+        View itemView = LayoutInflater.from(parent.getContext()).inflate(R.layout.message, parent, false);
+        return new MessageViewHolder(itemView);
     }
 
     @Override
     public void onBindViewHolder(@NonNull MessageViewHolder holder, int position) {
-        Message message = Messages.get(position);
-        Glide.with(holder.Avatar).load(message.Avatar).into(holder.Avatar);
-        holder.Name.setText(message.Name);
-        holder.Text.setText(message.Text);
-        holder.Card.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(v.getContext(),MessageActivity.class);
-                //intent.putExtra("message",message);
-                ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(
-                        (Activity) v.getContext(),
-                        holder.Card,
-                        "cardTransition"
-                );
-                v.getContext().startActivity(intent,options.toBundle());
-            }
-        });
+        Message currentMessage = messageList.get(position);
+        holder.name.setText(currentMessage.Name);
+        holder.text.setText(currentMessage.Text);
+        Glide.with(holder.avatar.getContext()).load(currentMessage.Avatar).into(holder.avatar);
     }
 
     @Override
     public int getItemCount() {
-        return Messages.size();
+        return messageList.size();
     }
 
-    public void DeleteMessage(int pos) {
-        Message m = Messages.get(-1);
-        db.collection("Messages").document(m.ID).delete();
+    class MessageViewHolder extends RecyclerView.ViewHolder {
+        ImageView avatar;
+        TextView name;
+        TextView text;
+
+        public MessageViewHolder(@NonNull View itemView) {
+            super(itemView);
+            avatar = itemView.findViewById(R.id.avatar);
+            name = itemView.findViewById(R.id.name);
+            text = itemView.findViewById(R.id.text);
+
+            itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    int position = getAdapterPosition();
+                    if (listener != null && position != RecyclerView.NO_POSITION) {
+                        listener.onItemClick(messageList.get(position));
+                    }
+                }
+            });
+        }
     }
 }
